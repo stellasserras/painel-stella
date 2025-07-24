@@ -25,15 +25,16 @@ if aba == "✅ Tarefas Semanais":
         progresso = pd.DataFrame(columns=["Tarefa", "Data Conclusão"])
 
     with st.form("nova_tarefa"):
-        st.subheader("➕ Adicionar nova tarefa")
-        nova_tarefa = st.text_input("Descrição da tarefa:")
-        prazo = st.date_input("Prazo", datetime.date.today())
-        submitted = st.form_submit_button("Adicionar")
+    st.subheader("➕ Adicionar nova tarefa")
+    nova_tarefa = st.text_input("Descrição da tarefa:")
+    prazo = st.date_input("Prazo", datetime.date.today())
+    submitted = st.form_submit_button("Adicionar")
 
-        if submitted and nova_tarefa:
-            tarefas = tarefas._append({"Tarefa": nova_tarefa, "Prazo": prazo}, ignore_index=True)
-            tarefas.to_json(tarefas_file)
-            st.success("Tarefa adicionada com sucesso!")
+    if submitted and nova_tarefa:
+        tarefas = tarefas._append({"Tarefa": nova_tarefa, "Prazo": prazo}, ignore_index=True)
+        tarefas.to_json(tarefas_file)
+        st.success("Tarefa adicionada com sucesso!")
+
 
     st.subheader("📋 Tarefas Pendentes")
     if not tarefas.empty:
