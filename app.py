@@ -27,12 +27,18 @@ def salvar_progresso(df):
 # ---------- Interface ----------
 st.set_page_config(page_title="Painel da Stella", layout="wide")
 st.sidebar.title("🌟 Painel Interativo")
-aba = st.sidebar.radio("Navegue pelas seções:", ["✅ Tarefas Semanais", "📊 Campanhas e Métricas", "🔑 Palavras-chave e Conversões"])
 
-# ---------- Módulo 1: Tarefas Semanais ----------
+# 🔁 ATUALIZEI AQUI COM TODAS AS ABAS
+aba = st.sidebar.radio("Navegue pelas seções:", [
+    "✅ Tarefas Semanais",
+    "📊 Campanhas e Métricas",
+    "🔑 Palavras-chave e Conversões",
+    "📈 Performance da Campanha"
+])
+
+# ---------- Módulo 1 ----------
 if aba == "✅ Tarefas Semanais":
     st.title("✅ Tarefas Semanais")
-
     tarefas = carregar_tarefas()
 
     st.subheader("📋 Lista de Tarefas")
@@ -73,7 +79,7 @@ if aba == "✅ Tarefas Semanais":
             st.success("Progresso registrado com sucesso!")
             st.experimental_rerun()
 
-# ---------- Módulo 2: Análise de Campanhas ----------
+# ---------- Módulo 2 ----------
 elif aba == "📊 Campanhas e Métricas":
     st.title("📊 Análise de Campanhas de Tráfego")
 
@@ -99,11 +105,11 @@ elif aba == "📊 Campanhas e Métricas":
         st.warning("⚠️ Não foi possível carregar os dados do Módulo 2.")
         st.text(str(e))
 
-# ---------- Módulo 3: Palavras-chave e Conversão ----------
+# ---------- Módulo 3 ----------
 elif aba == "🔑 Palavras-chave e Conversões":
     st.title("🔑 Análise de Palavras-chave e Conversões")
 
-    uploaded_file = st.file_uploader("📤 Envie o arquivo CSV com os termos de pesquisa", type=["csv"])
+    uploaded_file = st.file_uploader("📤 Envie o arquivo CSV com os termos de pesquisa", type=["csv"], key="upload_kw")
 
     if uploaded_file:
         try:
@@ -115,19 +121,17 @@ elif aba == "🔑 Palavras-chave e Conversões":
                 st.subheader("🏆 Palavras com mais conversões")
                 top = df_kw[["Palavra-chave", "Conversões"]].sort_values(by="Conversões", ascending=False)
                 st.table(top.head(10))
-
                 st.bar_chart(top.set_index("Palavra-chave"))
-
             else:
-                st.warning("⚠️ Certifique-se de que o CSV contenha as colunas: 'Palavra-chave' e 'Conversões'.")
+                st.warning("⚠️ O CSV deve conter as colunas 'Palavra-chave' e 'Conversões'.")
 
         except Exception as e:
-            st.error("Erro ao processar o arquivo. Verifique se é um CSV válido.")
+            st.error("Erro ao processar o arquivo.")
             st.text(str(e))
 
-# ---------- Módulo 4: Performance da Campanha ----------
+# ---------- Módulo 4 ----------
 elif aba == "📈 Performance da Campanha":
-    st.title("📈 Análise de Performance Diária da Campanha")
+    st.title("📈 Performance Diária da Campanha")
 
     uploaded_perf = st.file_uploader("📤 Envie o arquivo de performance (CSV)", type=["csv"], key="upload_perf")
 
@@ -138,28 +142,20 @@ elif aba == "📈 Performance da Campanha":
             st.subheader("📊 Visualização do Arquivo")
             st.dataframe(df_perf.head())
 
-            # Normalizando nomes de colunas comuns
             colunas_esperadas = ["Data", "Custo", "Conversões", "Cliques", "Valor Conversão"]
-            colunas_df = df_perf.columns.tolist()
-
-            if all(col in colunas_df for col in colunas_esperadas):
+            if all(col in df_perf.columns for col in colunas_esperadas):
                 df_perf["Data"] = pd.to_datetime(df_perf["Data"])
                 df_perf = df_perf.sort_values("Data")
-
-                # Métricas
                 df_perf["CPC"] = df_perf["Custo"] / df_perf["Cliques"]
                 df_perf["ROAS"] = df_perf["Valor Conversão"] / df_perf["Custo"]
 
                 st.subheader("📌 Métricas por Dia")
                 st.dataframe(df_perf[["Data", "Custo", "Cliques", "Conversões", "CPC", "ROAS"]])
 
-                st.subheader("📉 Gráficos de Tendência")
+                st.subheader("📉 Tendência Diária")
                 st.line_chart(df_perf.set_index("Data")[["Custo", "Conversões", "CPC", "ROAS"]])
-
             else:
-                st.warning(f"⚠️ O arquivo precisa conter as colunas: {', '.join(colunas_esperadas)}")
-
+                st.warning("⚠️ Certifique-se de que o arquivo contenha: " + ", ".join(colunas_esperadas))
         except Exception as e:
-            st.error("Erro ao processar o arquivo.")
+            st.error("Erro ao processar o arquivo de performance.")
             st.text(str(e))
-
