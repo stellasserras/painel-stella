@@ -1,108 +1,81 @@
 
 import streamlit as st
 import pandas as pd
-import datetime
+import json
+import os
+from datetime import datetime
 
-# --- MÓDULO 1: TAREFAS E PROGRESSO ---
-st.set_page_config(page_title="Painel Empreendedora Stella", layout="wide")
+# ---------- Funções auxiliares ----------
+def carregar_tarefas():
+    if os.path.exists("tarefas_semanal.json"):
+        with open("tarefas_semanal.json", "r", encoding="utf-8") as f:
+            return json.load(f)
+    return []
 
-aba = st.sidebar.radio("📌 Selecione o Módulo:", ["✅ Tarefas Semanais", "📊 Campanhas e Métricas"])
+def salvar_tarefas(tarefas):
+    with open("tarefas_semanal.json", "w", encoding="utf-8") as f:
+        json.dump(tarefas, f, indent=4, ensure_ascii=False)
 
+def carregar_progresso():
+    if os.path.exists("progresso.csv"):
+        return pd.read_csv("progresso.csv")
+    return pd.DataFrame(columns=["Data", "Meta", "Progresso (%)", "Observações"])
+
+def salvar_progresso(df):
+    df.to_csv("progresso.csv", index=False)
+
+# ---------- Interface ----------
+st.set_page_config(page_title="Painel da Stella", layout="wide")
+st.sidebar.title("🌟 Painel Interativo")
+aba = st.sidebar.radio("Navegue pelas seções:", ["✅ Tarefas Semanais", "📊 Campanhas e Métricas", "🔑 Palavras-chave e Conversões"])
+
+# ---------- Módulo 1: Tarefas Semanais ----------
 if aba == "✅ Tarefas Semanais":
-    st.title("✅ Painel de Tarefas Semanais")
+    st.title("✅ Tarefas Semanais")
 
-    tarefas_file = "tarefas_semanal.json"
-    progresso_file = "progresso.csv"
+    tarefas = carregar_tarefas()
 
-    try:
-        tarefas = pd.read_json(tarefas_file)
-    except:
-        tarefas = pd.DataFrame(columns=["Tarefa", "Prazo"])
-
-    try:
-        progresso = pd.read_csv(progresso_file)
-    except:
-        progresso = pd.DataFrame(columns=["Tarefa", "Data Conclusão"])
-
-    with st.form("nova_tarefa"):
-        st.subheader("➕ Adicionar nova tarefa")
-        nova_tarefa = st.text_input("Descrição da tarefa:")
-        prazo = st.date_input("Prazo", datetime.date.today())
-        submitted = st.form_submit_button("Adicionar")
-
-        if submitted and nova_tarefa:
-            tarefas = tarefas._append({"Tarefa": nova_tarefa, "Prazo": prazo}, ignore_index=True)
-            tarefas.to_json(tarefas_file)
-            st.success("Tarefa adicionada com sucesso!")
-
-    st.subheader("📋 Tarefas Pendentes")
-    if not tarefas.empty:
-        for i, row in tarefas.iterrows():
-            col1, col2 = st.columns([6, 1])
-            col1.markdown(f"**{row['Tarefa']}** (até {row['Prazo']})")
-            if col2.button("Concluir", key=f"done_{i}"):
-                progresso = progresso._append({
-                    "Tarefa": row["Tarefa"],
-                    "Data Conclusão": datetime.date.today()
-                }, ignore_index=True)
-                progresso.to_csv(progresso_file, index=False)
-                tarefas = tarefas.drop(index=i).reset_index(drop=True)
-                tarefas.to_json(tarefas_file)
+    st.subheader("📋 Lista de Tarefas")
+    for i, tarefa in enumerate(tarefas):
+        col1, col2 = st.columns([0.9, 0.1])
+        with col1:
+            st.write(f"🔹 {tarefa}")
+        with col2:
+            if st.button("🗑️", key=f"del{i}"):
+                tarefas.pop(i)
+                salvar_tarefas(tarefas)
                 st.experimental_rerun()
-    else:
-        st.info("Nenhuma tarefa pendente.")
 
-    st.subheader("📈 Progresso")
-    if not progresso.empty:
-        st.dataframe(progresso)
-    else:
-        st.info("Você ainda não concluiu nenhuma tarefa.")
+    st.subheader("➕ Adicionar nova tarefa")
+    nova_tarefa = st.text_input("Descreva a tarefa:")
+    if st.button("Adicionar tarefa"):
+        if nova_tarefa.strip():
+            tarefas.append(nova_tarefa.strip())
+            salvar_tarefas(tarefas)
+            st.success("Tarefa adicionada com sucesso!")
+            st.experimental_rerun()
 
+    st.subheader("📈 Registro de Progresso")
+    progresso_df = carregar_progresso()
+    st.dataframe(progresso_df)
+
+    st.markdown("### ✏️ Atualizar progresso")
+    with st.form("progresso_form"):
+        data = st.date_input("Data")
+        meta = st.text_input("Meta da semana")
+        progresso = st.slider("Progresso (%)", 0, 100, 0)
+        obs = st.text_area("Observações")
+        submitted = st.form_submit_button("Salvar")
+        if submitted:
+            novo_registro = {"Data": data, "Meta": meta, "Progresso (%)": progresso, "Observações": obs}
+            progresso_df = progresso_df.append(novo_registro, ignore_index=True)
+            salvar_progresso(progresso_df)
+            st.success("Progresso registrado com sucesso!")
+            st.experimental_rerun()
+
+# ---------- Módulo 2: Análise de Campanhas ----------
 elif aba == "📊 Campanhas e Métricas":
     st.title("📊 Análise de Campanhas de Tráfego")
-
-elif aba == "🔑 Palavras-chave e Conversão":
-    st.title("🔑 Análise de Palavras-chave que Convertem")
-
-    try:
-        palavras = pd.read_csv("Palavra-chave de pesquisa.csv", sep=";", encoding="utf-8")
-        palavras_clean = palavras.iloc[2:].reset_index(drop=True)
-        palavras_clean.columns = palavras.iloc[1]
-
-        dados = palavras_clean[[
-            "Pesquisar palavra-chave",
-            "Pesquisar tipo de correspondência de palavra-chave de pesquisa",
-            "Campanha",
-            "Cliques",
-            "CPC méd.",
-            "Custo",
-            "Conversões",
-            "Taxa de conv."
-        ]].copy()
-
-        def limpar(col):
-            return col.astype(str).str.replace('%', '').str.replace(',', '.').str.replace('–', '0').astype(float)
-
-        for col in ["Cliques", "CPC méd.", "Custo", "Conversões", "Taxa de conv."]:
-            dados[col] = limpar(dados[col])
-
-        st.subheader("📊 Palavras com mais conversões")
-        top_conv = dados[dados["Conversões"] > 0].sort_values(by="Conversões", ascending=False)
-        st.dataframe(top_conv.head(10))
-
-        st.subheader("💸 Palavras com maior custo sem conversão")
-        sem_conv = dados[dados["Conversões"] == 0].sort_values(by="Custo", ascending=False)
-        st.dataframe(sem_conv.head(10))
-
-        st.subheader("📈 Desempenho por tipo de correspondência")
-        tipo_corr = dados.groupby("Pesquisar tipo de correspondência de palavra-chave de pesquisa")[
-            ["Cliques", "Conversões", "Custo", "Taxa de conv."]
-        ].mean().sort_values(by="Conversões", ascending=False)
-        st.dataframe(tipo_corr)
-
-    except Exception as e:
-        st.warning("⚠️ Não foi possível processar o arquivo de palavras-chave.")
-        st.text(str(e))
 
     try:
         df = pd.read_csv("modulo2_dados_processados.csv")
@@ -123,5 +96,31 @@ elif aba == "🔑 Palavras-chave e Conversão":
         st.bar_chart(df.set_index("Campanha")["Conversões"])
 
     except Exception as e:
-        st.warning("Não foi possível carregar os dados do Módulo 2.")
+        st.warning("⚠️ Não foi possível carregar os dados do Módulo 2.")
         st.text(str(e))
+
+# ---------- Módulo 3: Palavras-chave e Conversão ----------
+elif aba == "🔑 Palavras-chave e Conversões":
+    st.title("🔑 Análise de Palavras-chave e Conversões")
+
+    uploaded_file = st.file_uploader("📤 Envie o arquivo CSV com os termos de pesquisa", type=["csv"])
+
+    if uploaded_file:
+        try:
+            df_kw = pd.read_csv(uploaded_file)
+            st.subheader("📄 Visualização do Arquivo")
+            st.dataframe(df_kw.head())
+
+            if "Palavra-chave" in df_kw.columns and "Conversões" in df_kw.columns:
+                st.subheader("🏆 Palavras com mais conversões")
+                top = df_kw[["Palavra-chave", "Conversões"]].sort_values(by="Conversões", ascending=False)
+                st.table(top.head(10))
+
+                st.bar_chart(top.set_index("Palavra-chave"))
+
+            else:
+                st.warning("⚠️ Certifique-se de que o CSV contenha as colunas: 'Palavra-chave' e 'Conversões'.")
+
+        except Exception as e:
+            st.error("Erro ao processar o arquivo. Verifique se é um CSV válido.")
+            st.text(str(e))
