@@ -1,41 +1,85 @@
 
 import streamlit as st
 import pandas as pd
-import json
-from datetime import datetime
+import datetime
 
-# Carrega as tarefas da semana
-with open("tarefas_semanal.json", "r", encoding="utf-8") as f:
-    tarefas = json.load(f)
+# --- MÓDULO 1: TAREFAS E PROGRESSO ---
+st.set_page_config(page_title="Painel Empreendedora Stella", layout="wide")
 
-# Dia atual
-dias_semana = ["Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado", "Domingo"]
-hoje = dias_semana[datetime.now().weekday()]
+aba = st.sidebar.radio("📌 Selecione o Módulo:", ["✅ Tarefas Semanais", "📊 Campanhas e Métricas"])
 
-st.title("📌 Painel Empreendedora Stella")
-st.subheader(f"Tarefas para hoje ({hoje})")
+if aba == "✅ Tarefas Semanais":
+    st.title("✅ Painel de Tarefas Semanais")
 
-# Exibe as tarefas do dia
-tarefas_hoje = tarefas.get(hoje, [])
-tarefas_concluidas = st.multiselect("Marque as tarefas que você concluiu hoje:", tarefas_hoje)
+    tarefas_file = "tarefas_semanal.json"
+    progresso_file = "progresso.csv"
 
-# Salvar progresso
-if st.button("✅ Salvar progresso"):
-    if tarefas_concluidas:
-        df = pd.read_csv("progresso.csv")
-        data_atual = datetime.now().strftime("%Y-%m-%d")
-        for tarefa in tarefas_concluidas:
-            df = pd.concat([df, pd.DataFrame([[data_atual, hoje, tarefa]], columns=["Data", "Dia", "Tarefa"])], ignore_index=True)
-        df.to_csv("progresso.csv", index=False)
-        st.success("Progresso salvo com sucesso!")
+    try:
+        tarefas = pd.read_json(tarefas_file)
+    except:
+        tarefas = pd.DataFrame(columns=["Tarefa", "Prazo"])
+
+    try:
+        progresso = pd.read_csv(progresso_file)
+    except:
+        progresso = pd.DataFrame(columns=["Tarefa", "Data Conclusão"])
+
+    with st.form("nova_tarefa"):
+        st.subheader("➕ Adicionar nova tarefa")
+        nova_tarefa = st.text_input("Descrição da tarefa:")
+        prazo = st.date_input("Prazo", datetime.date.today())
+        submitted = st.form_submit_button("Adicionar")
+
+        if submitted and nova_tarefa:
+            tarefas = tarefas._append({"Tarefa": nova_tarefa, "Prazo": prazo}, ignore_index=True)
+            tarefas.to_json(tarefas_file)
+            st.success("Tarefa adicionada com sucesso!")
+
+    st.subheader("📋 Tarefas Pendentes")
+    if not tarefas.empty:
+        for i, row in tarefas.iterrows():
+            col1, col2 = st.columns([6, 1])
+            col1.markdown(f"**{row['Tarefa']}** (até {row['Prazo']})")
+            if col2.button("Concluir", key=f"done_{i}"):
+                progresso = progresso._append({
+                    "Tarefa": row["Tarefa"],
+                    "Data Conclusão": datetime.date.today()
+                }, ignore_index=True)
+                progresso.to_csv(progresso_file, index=False)
+                tarefas = tarefas.drop(index=i).reset_index(drop=True)
+                tarefas.to_json(tarefas_file)
+                st.experimental_rerun()
     else:
-        st.warning("Selecione pelo menos uma tarefa para salvar.")
+        st.info("Nenhuma tarefa pendente.")
 
-# Mostrar relatório semanal
-st.subheader("📈 Relatório da Semana")
-df = pd.read_csv("progresso.csv")
-df["Data"] = pd.to_datetime(df["Data"])
-ultima_semana = df[df["Data"] >= pd.Timestamp.now() - pd.Timedelta(days=7)]
-relatorio = ultima_semana.groupby(["Dia", "Tarefa"]).size().reset_index(name="Vezes Concluída")
+    st.subheader("📈 Progresso")
+    if not progresso.empty:
+        st.dataframe(progresso)
+    else:
+        st.info("Você ainda não concluiu nenhuma tarefa.")
 
-st.dataframe(relatorio)
+# --- MÓDULO 2: CAMPANHAS E MÉTRICAS ---
+elif aba == "📊 Campanhas e Métricas":
+    st.title("📊 Análise de Campanhas de Tráfego")
+
+    try:
+        df = pd.read_csv("modulo2_dados_processados.csv")
+        st.subheader("📌 Visão Geral das Campanhas")
+        st.dataframe(df)
+
+        st.subheader("🔍 Análises")
+        col1, col2 = st.columns(2)
+        with col1:
+            st.metric("💰 Total Investido (R$)", round(df["Custo (R$)"].sum(), 2))
+            st.metric("🛒 Total de Conversões", int(df["Conversões"].sum()))
+        with col2:
+            st.metric("📈 ROAS Médio", round(df["ROAS"].mean(), 2))
+            st.metric("💵 CPC Médio Geral (R$)", round(df["CPC Médio (R$)"].mean(), 2))
+
+        st.subheader("📉 Gráficos")
+        st.bar_chart(df.set_index("Campanha")["ROAS"])
+        st.bar_chart(df.set_index("Campanha")["Conversões"])
+
+    except Exception as e:
+        st.warning("Não foi possível carregar os dados do Módulo 2.")
+        st.text(str(e))
