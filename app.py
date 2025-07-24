@@ -24,7 +24,7 @@ if aba == "✅ Tarefas Semanais":
     except:
         progresso = pd.DataFrame(columns=["Tarefa", "Data Conclusão"])
 
-    with st.form("nova_tarefa"):
+with st.form("nova_tarefa"):
     st.subheader("➕ Adicionar nova tarefa")
     nova_tarefa = st.text_input("Descrição da tarefa:")
     prazo = st.date_input("Prazo", datetime.date.today())
