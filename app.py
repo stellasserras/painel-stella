@@ -61,6 +61,49 @@ if aba == "✅ Tarefas Semanais":
 elif aba == "📊 Campanhas e Métricas":
     st.title("📊 Análise de Campanhas de Tráfego")
 
+elif aba == "🔑 Palavras-chave e Conversão":
+    st.title("🔑 Análise de Palavras-chave que Convertem")
+
+    try:
+        palavras = pd.read_csv("Palavra-chave de pesquisa.csv", sep=";", encoding="utf-8")
+        palavras_clean = palavras.iloc[2:].reset_index(drop=True)
+        palavras_clean.columns = palavras.iloc[1]
+
+        dados = palavras_clean[[
+            "Pesquisar palavra-chave",
+            "Pesquisar tipo de correspondência de palavra-chave de pesquisa",
+            "Campanha",
+            "Cliques",
+            "CPC méd.",
+            "Custo",
+            "Conversões",
+            "Taxa de conv."
+        ]].copy()
+
+        def limpar(col):
+            return col.astype(str).str.replace('%', '').str.replace(',', '.').str.replace('–', '0').astype(float)
+
+        for col in ["Cliques", "CPC méd.", "Custo", "Conversões", "Taxa de conv."]:
+            dados[col] = limpar(dados[col])
+
+        st.subheader("📊 Palavras com mais conversões")
+        top_conv = dados[dados["Conversões"] > 0].sort_values(by="Conversões", ascending=False)
+        st.dataframe(top_conv.head(10))
+
+        st.subheader("💸 Palavras com maior custo sem conversão")
+        sem_conv = dados[dados["Conversões"] == 0].sort_values(by="Custo", ascending=False)
+        st.dataframe(sem_conv.head(10))
+
+        st.subheader("📈 Desempenho por tipo de correspondência")
+        tipo_corr = dados.groupby("Pesquisar tipo de correspondência de palavra-chave de pesquisa")[
+            ["Cliques", "Conversões", "Custo", "Taxa de conv."]
+        ].mean().sort_values(by="Conversões", ascending=False)
+        st.dataframe(tipo_corr)
+
+    except Exception as e:
+        st.warning("⚠️ Não foi possível processar o arquivo de palavras-chave.")
+        st.text(str(e))
+
     try:
         df = pd.read_csv("modulo2_dados_processados.csv")
         st.subheader("📌 Visão Geral das Campanhas")
