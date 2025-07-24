@@ -124,3 +124,42 @@ elif aba == "🔑 Palavras-chave e Conversões":
         except Exception as e:
             st.error("Erro ao processar o arquivo. Verifique se é um CSV válido.")
             st.text(str(e))
+
+# ---------- Módulo 4: Performance da Campanha ----------
+elif aba == "📈 Performance da Campanha":
+    st.title("📈 Análise de Performance Diária da Campanha")
+
+    uploaded_perf = st.file_uploader("📤 Envie o arquivo de performance (CSV)", type=["csv"], key="upload_perf")
+
+    if uploaded_perf:
+        try:
+            df_perf = pd.read_csv(uploaded_perf)
+
+            st.subheader("📊 Visualização do Arquivo")
+            st.dataframe(df_perf.head())
+
+            # Normalizando nomes de colunas comuns
+            colunas_esperadas = ["Data", "Custo", "Conversões", "Cliques", "Valor Conversão"]
+            colunas_df = df_perf.columns.tolist()
+
+            if all(col in colunas_df for col in colunas_esperadas):
+                df_perf["Data"] = pd.to_datetime(df_perf["Data"])
+                df_perf = df_perf.sort_values("Data")
+
+                # Métricas
+                df_perf["CPC"] = df_perf["Custo"] / df_perf["Cliques"]
+                df_perf["ROAS"] = df_perf["Valor Conversão"] / df_perf["Custo"]
+
+                st.subheader("📌 Métricas por Dia")
+                st.dataframe(df_perf[["Data", "Custo", "Cliques", "Conversões", "CPC", "ROAS"]])
+
+                st.subheader("📉 Gráficos de Tendência")
+                st.line_chart(df_perf.set_index("Data")[["Custo", "Conversões", "CPC", "ROAS"]])
+
+            else:
+                st.warning(f"⚠️ O arquivo precisa conter as colunas: {', '.join(colunas_esperadas)}")
+
+        except Exception as e:
+            st.error("Erro ao processar o arquivo.")
+            st.text(str(e))
+
