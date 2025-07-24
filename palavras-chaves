@@ -1,0 +1,5 @@
+aba = st.sidebar.radio("📌 Selecione o Módulo:", [
+    "✅ Tarefas Semanais",
+    "📊 Campanhas e Métricas",
+    "🔑 Palavras-chave e Conversão"
+])
