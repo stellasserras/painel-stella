@@ -1,0 +1,6 @@
+aba = st.sidebar.radio("Navegue pelas seções:", [
+    "✅ Tarefas Semanais",
+    "📊 Campanhas e Métricas",
+    "🔑 Palavras-chave e Conversões",
+    "📈 Performance da Campanha"  # ← nova aba aqui
+])
