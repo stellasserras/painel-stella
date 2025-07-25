@@ -1,5 +1,9 @@
 
-import streamlit as st
+import zipfile
+
+# Novo conteúdo real do app.py
+app_py_path = "/mnt/data/app.py"
+app_py_code = '''import streamlit as st
 import pandas as pd
 import json
 import os
@@ -140,9 +144,17 @@ elif aba == "📈 Performance da Campanha":
             st.text(str(e))
 '''
 
-# Salvar novamente o app.py
-app_path = "/mnt/data/app.py"
-with open(app_path, "w", encoding="utf-8") as f:
+# Salvar o novo app.py
+with open(app_py_path, "w", encoding="utf-8") as f:
     f.write(app_py_code)
 
-app_path
+# Compactar os arquivos em um novo zip
+zip_final = "/mnt/data/painel_stella_atualizado.zip"
+with zipfile.ZipFile(zip_final, 'w') as zipf:
+    zipf.write(app_py_path, arcname="app.py")
+    zipf.write("/mnt/data/progresso.csv", arcname="progresso.csv")
+    zipf.write("/mnt/data/tarefas_semanal.json", arcname="tarefas_semanal.json")
+    zipf.write("/mnt/data/modulo2_dados_processados.csv", arcname="modulo2_dados_processados.csv")
+    zipf.write("/mnt/data/requirements.txt", arcname="requirements.txt")
+
+zip_final
