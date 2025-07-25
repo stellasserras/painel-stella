@@ -27,8 +27,6 @@ def salvar_progresso(df):
 # ---------- Interface ----------
 st.set_page_config(page_title="Painel da Stella", layout="wide")
 st.sidebar.title("🌟 Painel Interativo")
-
-# 🔁 ATUALIZEI AQUI COM TODAS AS ABAS
 aba = st.sidebar.radio("Navegue pelas seções:", [
     "✅ Tarefas Semanais",
     "📊 Campanhas e Métricas",
@@ -36,7 +34,7 @@ aba = st.sidebar.radio("Navegue pelas seções:", [
     "📈 Performance da Campanha"
 ])
 
-# ---------- Módulo 1 ----------
+# ---------- Módulo 1: Tarefas Semanais ----------
 if aba == "✅ Tarefas Semanais":
     st.title("✅ Tarefas Semanais")
     tarefas = carregar_tarefas()
@@ -73,13 +71,18 @@ if aba == "✅ Tarefas Semanais":
         obs = st.text_area("Observações")
         submitted = st.form_submit_button("Salvar")
         if submitted:
-            novo_registro = {"Data": data, "Meta": meta, "Progresso (%)": progresso, "Observações": obs}
-            progresso_df = progresso_df.append(novo_registro, ignore_index=True)
+            novo_registro = {
+                "Data": data,
+                "Meta": meta,
+                "Progresso (%)": progresso,
+                "Observações": obs
+            }
+            progresso_df = pd.concat([progresso_df, pd.DataFrame([novo_registro])], ignore_index=True)
             salvar_progresso(progresso_df)
             st.success("Progresso registrado com sucesso!")
             st.experimental_rerun()
 
-# ---------- Módulo 2 ----------
+# ---------- Módulo 2: Campanhas e Métricas ----------
 elif aba == "📊 Campanhas e Métricas":
     st.title("📊 Análise de Campanhas de Tráfego")
 
@@ -105,7 +108,7 @@ elif aba == "📊 Campanhas e Métricas":
         st.warning("⚠️ Não foi possível carregar os dados do Módulo 2.")
         st.text(str(e))
 
-# ---------- Módulo 3 ----------
+# ---------- Módulo 3: Palavras-chave e Conversões ----------
 elif aba == "🔑 Palavras-chave e Conversões":
     st.title("🔑 Análise de Palavras-chave e Conversões")
 
@@ -117,19 +120,19 @@ elif aba == "🔑 Palavras-chave e Conversões":
             st.subheader("📄 Visualização do Arquivo")
             st.dataframe(df_kw.head())
 
-            if "Palavra-chave" in df_kw.columns and "Conversões" in df_kw.columns:
+            if "Palavra-chave de pesquisa" in df_kw.columns and "Conversões" in df_kw.columns:
                 st.subheader("🏆 Palavras com mais conversões")
-                top = df_kw[["Palavra-chave", "Conversões"]].sort_values(by="Conversões", ascending=False)
+                top = df_kw[["Palavra-chave de pesquisa", "Conversões"]].sort_values(by="Conversões", ascending=False)
                 st.table(top.head(10))
-                st.bar_chart(top.set_index("Palavra-chave"))
+                st.bar_chart(top.set_index("Palavra-chave de pesquisa"))
             else:
-                st.warning("⚠️ O CSV deve conter as colunas 'Palavra-chave' e 'Conversões'.")
+                st.warning("⚠️ O CSV deve conter as colunas 'Palavra-chave de pesquisa' e 'Conversões'.")
 
         except Exception as e:
             st.error("Erro ao processar o arquivo.")
             st.text(str(e))
 
-# ---------- Módulo 4 ----------
+# ---------- Módulo 4: Performance da Campanha ----------
 elif aba == "📈 Performance da Campanha":
     st.title("📈 Performance Diária da Campanha")
 
@@ -142,12 +145,12 @@ elif aba == "📈 Performance da Campanha":
             st.subheader("📊 Visualização do Arquivo")
             st.dataframe(df_perf.head())
 
-            colunas_esperadas = ["Data", "Custo", "Conversões", "Cliques", "Valor Conversão"]
+            colunas_esperadas = ["Data", "Custo", "Cliques", "Conversões", "Valor Conversão"]
             if all(col in df_perf.columns for col in colunas_esperadas):
                 df_perf["Data"] = pd.to_datetime(df_perf["Data"])
                 df_perf = df_perf.sort_values("Data")
-                df_perf["CPC"] = df_perf["Custo"] / df_perf["Cliques"]
-                df_perf["ROAS"] = df_perf["Valor Conversão"] / df_perf["Custo"]
+                df_perf["CPC"] = df_perf["Custo"] / df_perf["Cliques"].replace(0, 1)
+                df_perf["ROAS"] = df_perf["Valor Conversão"] / df_perf["Custo"].replace(0, 1)
 
                 st.subheader("📌 Métricas por Dia")
                 st.dataframe(df_perf[["Data", "Custo", "Cliques", "Conversões", "CPC", "ROAS"]])
@@ -155,7 +158,7 @@ elif aba == "📈 Performance da Campanha":
                 st.subheader("📉 Tendência Diária")
                 st.line_chart(df_perf.set_index("Data")[["Custo", "Conversões", "CPC", "ROAS"]])
             else:
-                st.warning("⚠️ Certifique-se de que o arquivo contenha: " + ", ".join(colunas_esperadas))
+                st.warning("⚠️ O arquivo deve conter: " + ", ".join(colunas_esperadas))
         except Exception as e:
             st.error("Erro ao processar o arquivo de performance.")
             st.text(str(e))
