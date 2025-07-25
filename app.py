@@ -1,4 +1,6 @@
 
+# Código real do app.py (corrigido e compatível com Python 3.13)
+app_py_code = '''\
 import streamlit as st
 import pandas as pd
 import json
